@@ -2,7 +2,7 @@ name: CI/CD - restapi
 
 on:
   push:
-    branches: [ feature/add_restapi ]
+    branches: [ main ]
     paths:
       - "restapi/**"
       - ".github/workflows/restapi.yml"
