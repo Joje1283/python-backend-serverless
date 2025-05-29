@@ -46,7 +46,7 @@ jobs:
         working-directory: restapi
 
       - name: Build and Run Test
-        run: python -m pytest -n auto
+        run: python -m pytest
         working-directory: restapi
 
       - name: Install dependencies
