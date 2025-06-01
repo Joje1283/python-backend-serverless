@@ -1,6 +1,6 @@
 on:
   push:
-    branches: [ main ]
+    branches: [ feature/add_scheduler_and_worker ]
     paths:
       - "worker/**"
       - ".github/workflows/worker.yml"
