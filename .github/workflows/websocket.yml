@@ -1,0 +1,38 @@
+on:
+  push:
+    branches: [ feature/add_websocket ]
+    paths:
+      - ".github/workflows/websocket.yml"
+      - "websocket/**"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r websocket/requirements.txt
+          pip install chalice
+          
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Deploy Lambda Function with Chalice
+        run: |
+          chalice package --stage dev --merge-template resources.json out
+          aws cloudformation package  --template-file out/sam.json --s3-bucket ${{ secrets.BUCKET_NAME }} --output-template-file out/template.yml
+          aws cloudformation deploy --template-file out/template.yml --stack-name ChaliceChat --capabilities CAPABILITY_IAM
+        working-directory: websocket
