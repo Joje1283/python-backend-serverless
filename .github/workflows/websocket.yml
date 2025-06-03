@@ -4,6 +4,12 @@ on:
     paths:
       - ".github/workflows/websocket.yml"
       - "websocket/**"
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy the WebSocket Lambda function?'
+        required: true
+        default: 'no'
 jobs:
   deploy:
     runs-on: ubuntu-latest
