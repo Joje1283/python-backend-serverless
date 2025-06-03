@@ -1,7 +1,8 @@
 from enum import StrEnum
 from chalice import Chalice
 
-app = Chalice(app_name='worker')
+app = Chalice(app_name="worker")
+
 
 class QueueName(StrEnum):
     push = "push"
@@ -15,4 +16,3 @@ def push_handler(event):
         print(f"Received message: {body}")
         # Process the message as needed
         # For example, you could log it or perform some action based on its content
-

@@ -8,6 +8,7 @@ from chalice import WebsocketDisconnectedError
 
 class Storage(object):
     """An abstraction to interact with the DynamoDB Table."""
+
     def __init__(self, table):
         """Initialize Storage object
 
@@ -26,8 +27,8 @@ class Storage(object):
         environment variable has been set. For local testing, a value should
         be manually set in the environment if '' will not suffice.
         """
-        table_name = os.environ.get('TABLE', '')
-        table = boto3.resource('dynamodb').Table(table_name)
+        table_name = os.environ.get("TABLE", "")
+        table = boto3.resource("dynamodb").Table(table_name)
         return cls(table)
 
     def create_connection(self, connection_id):
@@ -45,8 +46,8 @@ class Storage(object):
         """
         self._table.put_item(
             Item={
-                'PK': connection_id,
-                'SK': 'username_',
+                "PK": connection_id,
+                "SK": "username_",
             },
         )
 
@@ -69,14 +70,14 @@ class Storage(object):
         """
         self._table.delete_item(
             Key={
-                'PK': connection_id,
-                'SK': 'username_%s' % old_name,
+                "PK": connection_id,
+                "SK": "username_%s" % old_name,
             },
         )
         self._table.put_item(
             Item={
-                'PK': connection_id,
-                'SK': 'username_%s' % username,
+                "PK": connection_id,
+                "SK": "username_%s" % username,
             },
         )
 
@@ -88,8 +89,7 @@ class Storage(object):
         of those and return them.
         """
         r = self._table.scan()
-        rooms = set([item['SK'].split('_', 1)[1] for item in r['Items']
-                     if item['SK'].startswith('room_')])
+        rooms = set([item["SK"].split("_", 1)[1] for item in r["Items"] if item["SK"].startswith("room_")])
         return rooms
 
     def set_room(self, connection_id, room):
@@ -104,8 +104,8 @@ class Storage(object):
         """
         self._table.put_item(
             Item={
-                'PK': connection_id,
-                'SK': 'room_%s' % room,
+                "PK": connection_id,
+                "SK": "room_%s" % room,
             },
         )
 
@@ -121,8 +121,8 @@ class Storage(object):
         """
         self._table.delete_item(
             Key={
-                'PK': connection_id,
-                'SK': 'room_%s' % room,
+                "PK": connection_id,
+                "SK": "room_%s" % room,
             },
         )
 
@@ -138,13 +138,11 @@ class Storage(object):
         :param room: Room name to get all connection ids from.
         """
         r = self._table.query(
-            IndexName='ReverseLookup',
-            KeyConditionExpression=(
-                Key('SK').eq('room_%s' % room)
-            ),
-            Select='ALL_ATTRIBUTES',
+            IndexName="ReverseLookup",
+            KeyConditionExpression=(Key("SK").eq("room_%s" % room)),
+            Select="ALL_ATTRIBUTES",
         )
-        return [item['PK'] for item in r['Items']]
+        return [item["PK"] for item in r["Items"]]
 
     def delete_connection(self, connection_id):
         """Delete a connection.
@@ -157,16 +155,14 @@ class Storage(object):
         """
         try:
             r = self._table.query(
-                KeyConditionExpression=(
-                    Key('PK').eq(connection_id)
-                ),
-                Select='ALL_ATTRIBUTES',
+                KeyConditionExpression=(Key("PK").eq(connection_id)),
+                Select="ALL_ATTRIBUTES",
             )
-            for item in r['Items']:
+            for item in r["Items"]:
                 self._table.delete_item(
                     Key={
-                        'PK': connection_id,
-                        'SK': item['SK'],
+                        "PK": connection_id,
+                        "SK": item["SK"],
                     },
                 )
         except Exception as e:
@@ -183,20 +179,16 @@ class Storage(object):
         :param connection_id: The connection to get properties for.
         """
         r = self._table.query(
-            KeyConditionExpression=(
-                Key('PK').eq(connection_id)
-            ),
-            Select='ALL_ATTRIBUTES',
+            KeyConditionExpression=(Key("PK").eq(connection_id)),
+            Select="ALL_ATTRIBUTES",
         )
-        r = {
-            entry['SK'].split('_', 1)[0]: entry['SK'].split('_', 1)[1]
-            for entry in r['Items']
-        }
+        r = {entry["SK"].split("_", 1)[0]: entry["SK"].split("_", 1)[1] for entry in r["Items"]}
         return r
 
 
 class Sender(object):
     """Class to send messages over websockets."""
+
     def __init__(self, app, storage):
         """Initialize a sender object.
 
@@ -224,7 +216,7 @@ class Sender(object):
             self._storage.delete_connection(e.connection_id)
 
     def broadcast(self, connection_ids, message):
-        """"Send a message to multiple connections.
+        """ "Send a message to multiple connections.
 
         :param connection_id: A list of API Gateway Connection IDs to
             send the message to.
@@ -240,6 +232,7 @@ class Handler(object):
 
     This class implements the bulk of our app behavior.
     """
+
     def __init__(self, storage, sender):
         """Initialize a Handler object.
 
@@ -252,12 +245,12 @@ class Handler(object):
         # Command table to translate a string command name into a
         # method to call.
         self._command_table = {
-            'help': self._help,
-            'nick': self._nick,
-            'join': self._join,
-            'room': self._room,
-            'quit': self._quit,
-            'ls': self._list,
+            "help": self._help,
+            "nick": self._nick,
+            "join": self._join,
+            "room": self._room,
+            "quit": self._quit,
+            "ls": self._list,
         }
 
     def handle(self, connection_id, message):
@@ -269,7 +262,7 @@ class Handler(object):
         """
         # First look the user up in the database and get a record for it.
         record = self._storage.get_record_by_connection(connection_id)
-        if record['username'] == '':
+        if record["username"] == "":
             # If the user does not have a username, we assume that the message
             # is the username they want and we call _handle_login_message.
             self._handle_login_message(connection_id, message)
@@ -288,14 +281,11 @@ class Handler(object):
         to {message}. Once that is done send a message back to the user
         to confirm the name choice. Also send a /help prompt.
         """
-        self._storage.set_username(connection_id, '', message)
-        self._sender.send(
-            connection_id,
-            'Using nickname: %s\nType /help for list of commands.' % message
-        )
+        self._storage.set_username(connection_id, "", message)
+        self._sender.send(connection_id, "Using nickname: %s\nType /help for list of commands." % message)
 
     def _handle_message(self, connection_id, message, record):
-        """"Handle a message from a connected and logged in user.
+        """ "Handle a message from a connected and logged in user.
 
         If the message starts with a / it's a command. Otherwise its a
         text message to send to all rooms in the room.
@@ -306,7 +296,7 @@ class Handler(object):
 
         :param record: A data record about the sender.
         """
-        if message.startswith('/'):
+        if message.startswith("/"):
             self._handle_command(connection_id, message[1:], record)
         else:
             self._handle_text(connection_id, message, record)
@@ -324,7 +314,7 @@ class Handler(object):
 
         :param record: A data record about the sender.
         """
-        args = message.split(' ')
+        args = message.split(" ")
         command_name = args.pop(0).lower()
         command = self._command_table.get(command_name)
         if command:
@@ -332,8 +322,7 @@ class Handler(object):
         else:
             # If no command method is found, send an error message
             # back to the user.
-            self._sender(
-                connection_id, 'Unknown command: %s' % command_name)
+            self._sender(connection_id, "Unknown command: %s" % command_name)
 
     def _handle_text(self, connection_id, message, record):
         """Handle a raw text message.
@@ -344,18 +333,16 @@ class Handler(object):
 
         :param record: A data record about the sender.
         """
-        if 'room' not in record:
+        if "room" not in record:
             # If the user is not in a room send them an error message
             # and return early.
-            self._sender.send(
-                connection_id, 'Cannot send message if not in chatroom.')
+            self._sender.send(connection_id, "Cannot send message if not in chatroom.")
             return
         # Collect a list of connection_ids in the same room as the message
         # sender.
-        connection_ids = self._storage.get_connection_ids_by_room(
-            record['room'])
+        connection_ids = self._storage.get_connection_ids_by_room(record["room"])
         # Prefix the message with the sender's name.
-        message = '%s: %s' % (record['username'], message)
+        message = "%s: %s" % (record["username"], message)
         # Broadcast the new message to everyone in the room.
         self._sender.broadcast(connection_ids, message)
 
@@ -368,27 +355,29 @@ class Handler(object):
         """
         self._sender.send(
             connection_id,
-            '\n'.join([
-                'Commands available:',
-                '    /help',
-                '          Display this message.',
-                '    /join {chat_room_name}',
-                '          Join a chatroom named {chat_room_name}.',
-                '    /nick {nickname}',
-                '          Change your name to {nickname}. If no {nickname}',
-                '          is provided then your current name will be printed',
-                '    /room',
-                '          Print out the name of the room you are currently ',
-                '          in.',
-                '    /ls',
-                '          If you are in a room, list all users also in the',
-                '          room. Otherwise, list all rooms.',
-                '    /quit',
-                '          Leave current room.',
-                '',
-                'If you are in a room, raw text messages that do not start ',
-                'with a / will be sent to everyone else in the room.',
-            ]),
+            "\n".join(
+                [
+                    "Commands available:",
+                    "    /help",
+                    "          Display this message.",
+                    "    /join {chat_room_name}",
+                    "          Join a chatroom named {chat_room_name}.",
+                    "    /nick {nickname}",
+                    "          Change your name to {nickname}. If no {nickname}",
+                    "          is provided then your current name will be printed",
+                    "    /room",
+                    "          Print out the name of the room you are currently ",
+                    "          in.",
+                    "    /ls",
+                    "          If you are in a room, list all users also in the",
+                    "          room. Otherwise, list all rooms.",
+                    "    /quit",
+                    "          Leave current room.",
+                    "",
+                    "If you are in a room, raw text messages that do not start ",
+                    "with a / will be sent to everyone else in the room.",
+                ]
+            ),
         )
 
     def _nick(self, connection_id, args, record):
@@ -403,27 +392,24 @@ class Handler(object):
         if not args:
             # If a nickname argument was not provided, we just want to
             # report the current nickname to the user.
-            self._sender.send(
-                connection_id, 'Current nickname: %s' % record['username'])
+            self._sender.send(connection_id, "Current nickname: %s" % record["username"])
             return
         # The first argument is assumed to be the new desired nickname.
         nick = args[0]
         # Change the username from record['username'] to nick in the storage
         # layer.
-        self._storage.set_username(connection_id, record['username'], nick)
+        self._storage.set_username(connection_id, record["username"], nick)
         # Send a message to the requestor to confirm the nickname change.
-        self._sender.send(connection_id, 'Nickname is: %s' % nick)
+        self._sender.send(connection_id, "Nickname is: %s" % nick)
         # Get the room the user is in.
-        room = record.get('room')
+        room = record.get("room")
         if room:
             # If the user was in a room, announce to the room they have
             # changed their name. Don't send this me sage to the user since
             # they already got a name change message.
             room_connections = self._storage.get_connection_ids_by_room(room)
             room_connections.remove(connection_id)
-            self._sender.broadcast(
-                room_connections,
-                '%s is now known as %s.' % (record['username'], nick))
+            self._sender.broadcast(room_connections, "%s is now known as %s." % (record["username"], nick))
 
     def _join(self, connection_id, args, record):
         """Join a chat room.
@@ -438,7 +424,7 @@ class Handler(object):
         # Get the room name to join.
         room = args[0]
         # Call quit to leave the current room we are in if there is any.
-        self._quit(connection_id, '', record)
+        self._quit(connection_id, "", record)
         # Get a list of connections in the target chat room.
         room_connections = self._storage.get_connection_ids_by_room(room)
         # Join the target chat room.
@@ -446,9 +432,8 @@ class Handler(object):
         # Send a message to the requestor that they have joined the room.
         # At the same time send an announcement to everyone who was already
         # in the room to alert them of the new user.
-        self._sender.send(
-            connection_id, 'Joined chat room "%s"' % room)
-        message = '%s joined room.' % record['username']
+        self._sender.send(connection_id, 'Joined chat room "%s"' % room)
+        message = "%s joined room." % record["username"]
         self._sender.broadcast(room_connections, message)
 
     def _room(self, connection_id, _args, record):
@@ -458,16 +443,13 @@ class Handler(object):
 
         :param record: A data record about the sender.
         """
-        if 'room' in record:
+        if "room" in record:
             # If the user is in a room send them the name back.
-            self._sender.send(connection_id, record['room'])
+            self._sender.send(connection_id, record["room"])
         else:
             # If the user is not in a room. Tell them so, and how to
             # join a room.
-            self._sender.send(
-                connection_id,
-                'Not currently in a room. Type /join {room_name} to do so.'
-            )
+            self._sender.send(connection_id, "Not currently in a room. Type /join {room_name} to do so.")
 
     def _quit(self, connection_id, _args, record):
         """Quit from a room.
@@ -476,20 +458,19 @@ class Handler(object):
 
         :param record: A data record about the sender.
         """
-        if 'room' not in record:
+        if "room" not in record:
             # If the user is not in a room there is nothing to do.
             return
         # Find the current room name, and delete that entry from
         # the database.
-        room_name = record['room']
+        room_name = record["room"]
         self._storage.remove_room(connection_id, room_name)
         # Send a message to the user to inform them they left the room.
-        self._sender.send(
-            connection_id, 'Left chat room "%s"' % room_name)
+        self._sender.send(connection_id, 'Left chat room "%s"' % room_name)
         # Tell everyone in the room that the user has left.
         self._sender.broadcast(
             self._storage.get_connection_ids_by_room(room_name),
-            '%s left room.' % record['username'],
+            "%s left room." % record["username"],
         )
 
     def _list(self, connection_id, _args, record):
@@ -499,12 +480,12 @@ class Handler(object):
 
         :param record: A data record about the sender.
         """
-        room = record.get('room')
+        room = record.get("room")
         if room:
             # If the user is in a room, get a listing of everyone
             # in the room.
             result = [
-                self._storage.get_record_by_connection(c_id)['username']
+                self._storage.get_record_by_connection(c_id)["username"]
                 for c_id in self._storage.get_connection_ids_by_room(room)
             ]
         else:
@@ -512,4 +493,4 @@ class Handler(object):
             # currently open.
             result = self._storage.list_rooms()
         # Send the result list back to the requestor.
-        self._sender.send(connection_id, '\n'.join(result))
+        self._sender.send(connection_id, "\n".join(result))

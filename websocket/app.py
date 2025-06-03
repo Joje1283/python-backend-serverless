@@ -8,9 +8,7 @@ from chalicelib import Handler
 
 app = Chalice(app_name="chalice-chat-example")
 app.websocket_api.session = Session()
-app.experimental_feature_flags.update([
-    'WEBSOCKETS'
-])
+app.experimental_feature_flags.update(["WEBSOCKETS"])
 
 STORAGE = Storage.from_env()
 SENDER = Sender(app, STORAGE)

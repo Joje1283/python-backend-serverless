@@ -1,6 +1,6 @@
 from chalice import Chalice, Rate
 
-app = Chalice(app_name='scheduler')
+app = Chalice(app_name="scheduler")
 
 
 @app.schedule(Rate(5, unit=Rate.MINUTES))
