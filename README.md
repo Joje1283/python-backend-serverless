@@ -6,8 +6,8 @@ This is a **monorepo** for a fully **serverless Python backend** architecture, d
 
 * **REST API**: [FastAPI](https://fastapi.tiangolo.com/) + [Mangum](https://mangum.fastapiexpert.com/) + [Serverless Framework](https://www.serverless.com/)
 * **WebSocket**: [AWS Chalice](https://aws.github.io/chalice/tutorials/wschat.html), [DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html), [CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html)
-* **Worker**: \[AWS Chalice], [Amazon SQS](https://aws.amazon.com/sqs/)
-* **Scheduler (Cron)**: \[AWS Chalice]
+* **Worker**: [AWS Chalice](https://github.com/aws/chalice), [Amazon SQS](https://aws.amazon.com/sqs/)
+* **Scheduler (Cron)**: [AWS Chalice](https://github.com/aws/chalice)
 * **CI/CD**: GitHub Actions
 
 ## 📁 Project Structure
